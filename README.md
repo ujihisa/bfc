@@ -13,4 +13,4 @@
 
     $ cat helloworld.bf | ./bfc.rb -c | less
 
-    $ ./bfc.rb [-c|-r|-l] --run helloworld.bf
+    $ ./bfc.rb [-c|-r|-l] helloworld.bf --run

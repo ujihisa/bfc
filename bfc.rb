@@ -4,7 +4,7 @@ require 'rubygems'
 module BFC
   module_function
 
-  def compile_ruby(code)
+  def ruby(code)
     h = {
       ',' => '(a[i]=STDIN.getc.ord)==255&&exit',
       '.' => 'STDOUT.putc(a[i])',
@@ -18,7 +18,7 @@ module BFC
     "a=Hash.new(0)\ni=0\n" + code.each_char.map {|c| h[c] }.compact.join("\n")
   end
 
-  def compile_c(code)
+  def c(code)
     h = {
       ',' => '*h=getchar();',
       '.' => 'putchar(*h);',
@@ -55,18 +55,18 @@ when __FILE__
   case
   when opts[:ruby]
     if !opts[:run]
-      puts BFC.compile_ruby(File.read(opts[:ruby]))
+      puts BFC.ruby(File.read(opts[:ruby]))
     else
-      eval BFC.compile_ruby(File.read(opts[:ruby]))
+      eval BFC.ruby(File.read(opts[:ruby]))
     end
   when opts[:c]
     if !opts[:run]
-      puts BFC.compile_c(File.read(opts[:c]))
+      puts BFC.c(File.read(opts[:c]))
     else
       require 'tempfile'
       name = Tempfile.new('bfc').path + '.c'
       File.open(name, 'w') {|io|
-        io.puts BFC.compile_c(File.read(opts[:c]))
+        io.puts BFC.c(File.read(opts[:c]))
       }
       Dir.chdir(File.dirname(name)) do
         system 'gcc', name
