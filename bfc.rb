@@ -39,6 +39,35 @@ module BFC
     }
     EOF
   end
+
+  def haskell(code)
+    h = {
+      ',' => 'tmp <- getChar; h <- return $ update (\_ -> ord tmp) i h;',
+      '.' => 'putChar $ chr $ h !! i;',
+      '-' => 'h <- return $ update (subtract 1) i h;',
+      '+' => 'h <- return $ update (+ 1) i h;',
+      '<' => 'i <- return $ i - 1;',
+      '>' => 'i <- return $ i + 1;',
+      '[' => '(h, i) <- while (\(h, i) -> (h !! i) /= 0) (\(h, i) -> do {',
+      ']' => 'return (h, i);}) (h, i);'
+    }
+    return <<-EOF
+import Char
+main = do {
+  (h, i) <- return $ (repeat 0, 0);
+  #{code.each_char.map {|c| h[c] }.compact.join("\n")}
+  }
+
+update :: (Int -> Int) -> Int -> [Int] -> [Int]
+update op index a = zipWith f a [0..]
+  where
+    f = (\\e i -> if i == index then op e else e)
+
+while cond action x
+  | cond x    = action x >>= while cond action
+  | otherwise = return x
+    EOF
+  end
 end
 
 case $0
@@ -50,6 +79,7 @@ when __FILE__
     opt :ruby, 'output ruby', :type => String
     opt :c, 'output c', :type => String
     opt :llvm, 'output llvm', :type => String
+    opt :haskell, 'output haskell', :type => String
     opt :run, 'run'
   end
   case
@@ -71,6 +101,19 @@ when __FILE__
       Dir.chdir(File.dirname(name)) do
         system 'gcc', name
         system './a.out'
+      end
+    end
+  when opts[:haskell]
+    if !opts[:run]
+      puts BFC.haskell(File.read(opts[:haskell]))
+    else
+      require 'tempfile'
+      name = Tempfile.new('bfc').path + '.hs'
+      File.open(name, 'w') {|io|
+        io.puts BFC.haskell(File.read(opts[:haskell]))
+      }
+      Dir.chdir(File.dirname(name)) do
+        system 'runghc', name
       end
     end
   when opts[:llvm]
