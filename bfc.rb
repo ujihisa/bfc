@@ -40,6 +40,33 @@ module BFC
     EOF
   end
 
+  def c_without_while(code)
+    counter = 0
+    body = code.each_char.map {|c|
+      case c
+      when ','; '*h=getchar();'
+      when '.'; 'putchar(*h);'
+      when '-'; '--*h;'
+      when '+'; '++*h;'
+      when '<'; '--h;'
+      when '>'; '++h;'
+      when '['; "do#{counter += 1}:"
+      when ']'
+        "if (*h != 0) goto do#{counter}; else goto end#{counter};" <<
+        "end#{counter}:"
+      end
+    }.compact.join("\n")
+
+    return <<-EOF
+    #include<stdlib.h>
+    int main(int argc, char **argv) {
+    char *h = (char *)malloc(sizeof(char) * 1024);
+    #{body}
+    return 0;
+    }
+    EOF
+  end
+
   def haskell(code)
     h = {
       ',' => 'tmp <- getChar; h <- return $ update (\_ -> ord tmp) i h;',
@@ -78,6 +105,7 @@ when __FILE__
     version '0.1'
     opt :ruby, 'output ruby', :type => String
     opt :c, 'output c', :type => String
+    opt :without_while, 'No while statement in C'
     opt :llvm, 'output llvm', :type => String
     opt :haskell, 'output haskell', :type => String
     opt :run, 'run'
@@ -90,13 +118,19 @@ when __FILE__
       eval BFC.ruby(File.read(opts[:ruby]))
     end
   when opts[:c]
+    c_code =
+      if !opts[:without_while]
+        BFC.c(File.read(opts[:c]))
+      else
+        BFC.c_without_while(File.read(opts[:c]))
+      end
     if !opts[:run]
-      puts BFC.c(File.read(opts[:c]))
+      puts c_code
     else
       require 'tempfile'
       name = Tempfile.new('bfc').path + '.c'
       File.open(name, 'w') {|io|
-        io.puts BFC.c(File.read(opts[:c]))
+        io.puts c_code
       }
       Dir.chdir(File.dirname(name)) do
         system 'gcc', name
