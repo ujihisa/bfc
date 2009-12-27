@@ -252,7 +252,13 @@ when __FILE__
   when opts[:scheme]
     code = BFC.scheme ARGF.read
     if opts[:run]
-      IO.popen('gosh', 'w') {|io| io.puts code }
+      name = Tempfile.new('bfc').path + '.hs'
+      File.open(name, 'w') {|io|
+        io.puts code
+      }
+      Dir.chdir(File.dirname(name)) do
+        system 'gosh', name
+      end
     else
       puts code
     end
