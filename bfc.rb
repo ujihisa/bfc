@@ -246,6 +246,36 @@ when __FILE__
     p opts
   end
 else
-  # spec
-  p :spec
+  describe 'Hello, World!' do
+    require 'tempfile'
+    before :all do
+      @tmp = Tempfile.new('bfcspec').tap(&:close).path
+      @hw = 'Hello World!'
+    end
+
+    it 'by Ruby' do
+      system "#{File.expand_path __FILE__} -r helloworld.bf --run > '#{@tmp}'"
+      File.read(@tmp).should == @hw
+    end
+
+    it 'by C' do
+      system "#{File.expand_path __FILE__} -c helloworld.bf --run > '#{@tmp}'"
+      File.read(@tmp).should == @hw
+    end
+
+    it 'by C without while statements' do
+      system "#{File.expand_path __FILE__} -c helloworld.bf -w --run > '#{@tmp}'"
+      File.read(@tmp).should == @hw
+    end
+
+    it 'by Haskell' do
+      system "#{File.expand_path __FILE__} -h helloworld.bf --run > '#{@tmp}'"
+      File.read(@tmp).should == @hw
+    end
+
+    it 'by LLVM' do
+      system "#{File.expand_path __FILE__} -l helloworld.bf --run > '#{@tmp}'"
+      File.read(@tmp).should == @hw
+    end
+  end
 end
