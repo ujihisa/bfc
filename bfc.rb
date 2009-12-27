@@ -1,12 +1,10 @@
 #!/usr/bin/env ruby192
-require 'rubygems'
-
 module BFC
   module_function
 
   def ruby(code)
     h = {
-      ',' => '(a[i]=STDIN.getc.ord)==255&&exit',
+      ',' => 'a[i]=STDIN.getc.ord',
       '.' => 'STDOUT.putc(a[i])',
       '-' => 'a[i]-=1',
       '+' => 'a[i]+=1',
@@ -15,7 +13,8 @@ module BFC
       '[' => 'while a[i]!=0',
       ']' => 'end'
     }
-    "a=Hash.new(0)\ni=0\n" + code.each_char.map {|c| h[c] }.compact.join("\n")
+    "a=Array.new(1024){0}\ni=0\n" <<
+    code.each_char.map {|c| h[c] }.compact.join("\n")
   end
 
   def c(code)
@@ -29,7 +28,6 @@ module BFC
       '[' => 'while(*h){',
       ']' => '}'
     }
-    # FIXME: 1024 is not enough
     return <<-EOF
     #include<stdlib.h>
     int main(int argc, char **argv) {
@@ -177,35 +175,27 @@ end
 
 case $0
 when __FILE__
+  require 'tempfile'
+  require 'rubygems'
   require 'trollop'
   opts = Trollop.options do
     banner 'Brainf**k Compiler in Ruby'
     version '1.0'
-    opt :ruby, 'output ruby', :type => String
-    opt :c, 'output c', :type => String
-    opt :without_while, 'No while statement in C'
-    opt :llvm, 'output llvm', :type => String
-    opt :haskell, 'output haskell', :type => String
+    opt :ruby, 'output ruby'
+    opt :c, 'output c'
+    opt :llvm, 'output llvm'
+    opt :haskell, 'output haskell'
     opt :run, 'run'
+    opt :without_while, 'No while statement in C'
   end
   case
   when opts[:ruby]
-    if !opts[:run]
-      puts BFC.ruby(File.read(opts[:ruby]))
-    else
-      eval BFC.ruby(File.read(opts[:ruby]))
-    end
+    send(opts[:run] ? :eval : :puts, BFC.ruby(ARGF.read))
   when opts[:c]
-    c_code =
-      if !opts[:without_while]
-        BFC.c(File.read(opts[:c]))
-      else
-        BFC.c_without_while(File.read(opts[:c]))
-      end
+    c_code = BFC.send(opts[:without_while] ? :c_without_while : :c, ARGF.read)
     if !opts[:run]
       puts c_code
     else
-      require 'tempfile'
       name = Tempfile.new('bfc').path + '.c'
       File.open(name, 'w') {|io|
         io.puts c_code
@@ -217,12 +207,11 @@ when __FILE__
     end
   when opts[:haskell]
     if !opts[:run]
-      puts BFC.haskell(File.read(opts[:haskell]))
+      puts BFC.haskell(ARGF.read)
     else
-      require 'tempfile'
       name = Tempfile.new('bfc').path + '.hs'
       File.open(name, 'w') {|io|
-        io.puts BFC.haskell(File.read(opts[:haskell]))
+        io.puts BFC.haskell(ARGF.read)
       }
       Dir.chdir(File.dirname(name)) do
         system 'runghc', name
@@ -230,12 +219,11 @@ when __FILE__
     end
   when opts[:llvm]
     if !opts[:run]
-      puts BFC.llvm(File.read(opts[:llvm]))
+      puts BFC.llvm(ARGF.read)
     else
-      require 'tempfile'
       name = Tempfile.new('bfc').path + '.ll'
       File.open(name, 'w') {|io|
-        io.puts BFC.llvm(File.read(opts[:llvm]))
+        io.puts BFC.llvm(ARGF.read)
       }
       Dir.chdir(File.dirname(name)) do
         system 'llvm-as', name
@@ -243,11 +231,11 @@ when __FILE__
       end
     end
   else
-    p opts
+    abort "Specify a language."
   end
 else
+  require 'tempfile'
   describe 'Hello, World!' do
-    require 'tempfile'
     before :all do
       @tmp = Tempfile.new('bfcspec').tap(&:close).path
       @hw = 'Hello World!'
@@ -256,11 +244,19 @@ else
     it 'by Ruby' do
       system "#{File.expand_path __FILE__} -r helloworld.bf --run > '#{@tmp}'"
       File.read(@tmp).should == @hw
+
+      system "#{File.expand_path __FILE__} -r helloworld.bf > '#{@tmp}'"
+      File.read(@tmp).should_not == ''
+      File.read(@tmp).should_not == @hw
     end
 
     it 'by C' do
       system "#{File.expand_path __FILE__} -c helloworld.bf --run > '#{@tmp}'"
       File.read(@tmp).should == @hw
+
+      system "#{File.expand_path __FILE__} -c helloworld.bf > '#{@tmp}'"
+      File.read(@tmp).should_not == ''
+      File.read(@tmp).should_not == @hw
     end
 
     it 'by C without while statements' do
