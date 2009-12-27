@@ -29,14 +29,14 @@ MIT
 
 ## ACKNOWLEDGEMENT
 
-Without Nanki's a lot of bugfixes and advices, this project had never finished.
+Without Nanki's bugfixes and advice, this project would have never finished.
 <http://blog.netswitch.jp/>
 
 # ANATOMY OF BFC
 
 ## THE BRAINF**K LANGUAGE
 
-According to Wikipedia, Brainf\*\*k the programming language has the following 8 tokens that have each semantics. Here is the equivalent transformation from Brainf\*\*k to C.
+According to Wikipedia, the programming language Brainf\*\*k has the following 8 tokens that each have semantics. Here is the equivalent transformation from Brainf\*\*k to C.
 
 ![table](http://gyazo.com/9bfabec06e94a32d2ad3bee624296efc.png)
 
