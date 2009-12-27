@@ -171,6 +171,24 @@ declare i8 @getchar() nounwind
 
     EOF
   end
+
+  def scheme(code)
+    h = {
+      ',' => '(vector-set! h i (read-char))',
+      '.' => '(write-char (integer->char (vector-ref h i)))',
+      '-' => '(vector-set! h i (- (vector-ref h i) 1))',
+      '+' => '(vector-set! h i (+ (vector-ref h i) 1))',
+      '<' => '(set! i (- i 1))',
+      '>' => '(set! i (+ i 1))',
+      '[' => '(while (not (zero? (vector-ref h i))) (begin',
+      ']' => '))'
+    }
+    return <<-EOF
+    (define h (make-vector 1024 0))
+    (define i 0)
+    #{code.each_char.map {|c| h[c] }.compact.join("\n")}
+    EOF
+  end
 end
 
 case $0
@@ -185,6 +203,7 @@ when __FILE__
     opt :c, 'output c'
     opt :llvm, 'output llvm'
     opt :haskell, 'output haskell'
+    opt :scheme, 'output scheme'
     opt :run, 'run'
     opt :without_while, 'No while statement in C'
   end
@@ -230,6 +249,13 @@ when __FILE__
         system 'lli', name.sub(/\.ll$/, '.bc')
       end
     end
+  when opts[:scheme]
+    code = BFC.scheme ARGF.read
+    if opts[:run]
+      IO.popen('gosh', 'w') {|io| io.puts code }
+    else
+      puts code
+    end
   else
     abort "Specify a language."
   end
@@ -271,6 +297,11 @@ else
 
     it 'by LLVM' do
       system "#{File.expand_path __FILE__} -l helloworld.bf --run > '#{@tmp}'"
+      File.read(@tmp).should == @hw
+    end
+
+    it 'by Scheme' do
+      system "#{File.expand_path __FILE__} -s helloworld.bf --run > '#{@tmp}'"
       File.read(@tmp).should == @hw
     end
   end
