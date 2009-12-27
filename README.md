@@ -11,7 +11,9 @@
     $ ./bfc.rb [-c|--c]       helloworld.bf > helloworld.c
     $ ./bfc.rb [-h|--haskell] helloworld.bf > helloworld.hs
     $ ./bfc.rb [-l|--llvm]    helloworld.bf > helloworld.ll
+    $ ./bfc.rb [-s|--scheme]  helloworld.bf > helloworld.scm
 
+    $ cat helloworld.bf | ./bfc.rb --ruby
     $ ./bfc.rb [-r|--ruby|-c|--c|-h|--haskell|-l|--llvm] helloworld.bf --run
     $ ./bfc.rb [-c|--c] helloworld.bf --without-while > helloworld.c
     $ spec ./bfc.rb
@@ -27,8 +29,10 @@ MIT
 
 ## ACKNOWLEDGEMENT
 
-Without Nanki's help, this project had never finished.
+Without Nanki's a lot of bugfixes and advices, this project had never finished.
 <http://blog.netswitch.jp/>
+
+# ANATOMY OF BFC
 
 ## THE BRAINF**K LANGUAGE
 
@@ -51,7 +55,7 @@ C Translation Table in `bfc.rb`:
 
 Ruby Translation Table in `bfc.rb`:
 
-    ',' => '(a[i]=STDIN.getc.ord)==255&&exit',
+    ',' => 'a[i]=STDIN.getc.ord',
     '.' => 'STDOUT.putc(a[i])',
     '-' => 'a[i]-=1',
     '+' => 'a[i]+=1',
@@ -95,11 +99,10 @@ This is short, but can handle loop with changing the value with larger scope lik
 
 ## TRANSLATING TO C WITHOUT WHILE STATEMENTS
 
-Unline the effort on Haskell, it is impossible to write simple translation table for C when I can use only `goto` for controll flows instead of `while` statements. So I made the compile to have label counters to make labels for `goto` a lot.
+Unlike the effort on Haskell, it is impossible to write simple translation table for C when I can use only `goto` for control flows instead of `while` statements. So I made the compile to have label counters to make labels for `goto` a lot.
 
 Excerpt from `bfc.c`:
 
-    case c
     when ','; '*h=getchar();'
     when '.'; 'putchar(*h);'
     when '-'; '--*h;'
@@ -112,6 +115,25 @@ Excerpt from `bfc.c`:
       "end#{counter}:"
     end
 
-## TRANSLATIONG TO LLVM
+## TRANSLATING TO LLVM
 
-(TODO)
+[LLVM Assembly language](http://ujihisa.blogspot.com/2009/12/llvm-for-starters.html) is similar to Haskell to the extent of the prohibition of re-assignments, and not similar to Haskell to the extend of having `do` syntax for Monad. So I decided to use pointers to store values. Also, LLVM needs many temporary variables which cannot be re-assigned, so I used counters again to use temporary constants.
+
+The translation table with counters is too big to paste here, so I'll just show the definition of `'+'` which means `'++h'` in C.
+
+    when '+'
+      a = tc += 1; b = tc += 1; c = tc += 1; d = tc += 1
+      "%tmp#{a} = load i32* %i, align 4\n" <<
+      "%tmp#{b} = getelementptr [1024 x i8]* %h, i32 0, i32 %tmp#{a}\n" <<
+      "%tmp#{c} = load i8* %tmp#{b}, align 1\n" <<
+      "%tmp#{d} = add i8 1, %tmp#{c}\n" <<
+      "store i8 %tmp#{d}, i8* %tmp#{b}, align 1\n"
+
+(where `tc` is the abbreviation of `tmp counter`.)
+
+One more thing. LLVM is famous for its aggressive optimizations. For example, the result of the conversion from `helloworld.bf` to LLVM Assembly Language is very long.
+
+    $ ./bfc.rb --llvm ./helloworld.bf | wc -l
+    2842
+
+But once you optimize the assembly by `opt` command of LLVM, the line of code will become shorter and more succinct.
