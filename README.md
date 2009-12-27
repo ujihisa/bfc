@@ -15,3 +15,8 @@
     $ cat helloworld.bf | ./bfc.rb -c | less
 
     $ ./bfc.rb [-c|-r|-h|-l] helloworld.bf --run
+
+## ACKNOWLEDGEMENT
+
+Without Nanki's help, this project had never finished.
+<http://blog.netswitch.jp/>
