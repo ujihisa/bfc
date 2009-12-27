@@ -134,6 +134,8 @@ while cond action x
       when '['
         a = tc += 1; b = tc += 1; c = tc += 1; d = tc += 1
         lc += 1
+        "br label %cond#{lc}\n" <<
+        "cond#{lc}:\n" <<
         "%tmp#{a} = load i32* %i, align 4\n" <<
         "%tmp#{b} = getelementptr [1024 x i8]* %h, i32 0, i32 %tmp#{a}\n" <<
         "%tmp#{c} = load i8* %tmp#{b}, align 1\n" <<
@@ -141,7 +143,7 @@ while cond action x
         "br i1 %tmp#{d}, label %end#{lc}, label %while#{lc}\n" <<
         "while#{lc}:\n"
       when ']'
-        "br label %while#{lc}\n" <<
+        "br label %cond#{lc}\n" <<
         "end#{lc}:\n"
       end
     }.compact.join("\n")
