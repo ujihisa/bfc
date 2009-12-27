@@ -174,7 +174,7 @@ declare i8 @getchar() nounwind
 
   def scheme(code)
     h = {
-      ',' => '(vector-set! h i (read-char))',
+      ',' => '(vector-set! h i (char->integer (read-char)))',
       '.' => '(write-char (integer->char (vector-ref h i)))',
       '-' => '(vector-set! h i (- (vector-ref h i) 1))',
       '+' => '(vector-set! h i (+ (vector-ref h i) 1))',
