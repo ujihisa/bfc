@@ -102,7 +102,7 @@ while cond action x
       case char
       when ','; '*h=getchar();'
       when '.'
-        a = tc += 1; b = tc += 1; c = tc += 1; d = tc += 1
+        a = tc += 1; b = tc += 1; c = tc += 1
         "%tmp#{a} = load i32* %i, align 4\n" <<
         "%tmp#{b} = getelementptr [1024 x i8]* %h, i32 0, i32 %tmp#{a}\n" <<
         "%tmp#{c} = load i8* %tmp#{b}, align 1\n" <<
@@ -140,19 +140,26 @@ while cond action x
         "%tmp#{b} = getelementptr [1024 x i8]* %h, i32 0, i32 %tmp#{a}\n" <<
         "%tmp#{c} = load i8* %tmp#{b}, align 1\n" <<
         "%tmp#{d} = icmp eq i8 %tmp#{c}, 0\n" <<
-        "br i1 %tmp#{d}, label %end#{lc}, label %while#{lc}\n" <<
+        "br i1 %tmp#{d}, label %while#{lc}, label %end#{lc}\n" <<
         "while#{lc}:\n"
       when ']'
         "br label %cond#{lc}\n" <<
         "end#{lc}:\n"
       end
     }.compact.join("\n")
+    initialize_h = (0...1024).map {|i|
+      "%initialize#{i} = getelementptr [1024 x i8]* %h, i32 0, i32 #{i}\n" <<
+      "store i8 0, i8* %initialize#{i}, align 1"
+    }.join("\n")
     return <<-EOF
 define void @main() nounwind {
 init:
   %h = alloca [1024 x i8]
   %i = alloca i32
   store i32 0, i32* %i, align 4
+  ;initialize %h
+  #{initialize_h}
+  ;body
   #{body}
   ret void
 }
