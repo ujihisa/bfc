@@ -180,7 +180,7 @@ when __FILE__
   require 'trollop'
   opts = Trollop.options do
     banner 'Brainf**k Compiler in Ruby'
-    version '0.1'
+    version '1.0'
     opt :ruby, 'output ruby', :type => String
     opt :c, 'output c', :type => String
     opt :without_while, 'No while statement in C'
