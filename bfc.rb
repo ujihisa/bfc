@@ -100,7 +100,12 @@ while cond action x
     lc, tc = 0, 0 # label counter and tmp counter
     body = code.each_char.map {|char|
       case char
-      when ','; '*h=getchar();'
+      when ','
+        a = tc += 1; b = tc += 1; c = tc += 1
+        "%tmp#{a} = load i32* %i, align 4\n" <<
+        "%tmp#{b} = getelementptr [1024 x i8]* %h, i32 0, i32 %tmp#{a}\n" <<
+        "%tmp#{c} = call i8 @getchar()\n" <<
+        "store i8 %tmp#{c}, i8* %tmp#{b}, align 1\n"
       when '.'
         a = tc += 1; b = tc += 1; c = tc += 1
         "%tmp#{a} = load i32* %i, align 4\n" <<
@@ -164,6 +169,7 @@ init:
   ret void
 }
 declare i32 @putchar(i8) nounwind
+declare i8 @getchar() nounwind
 
     EOF
   end
