@@ -95,6 +95,7 @@ while cond action x
   end
 
   def llvm(code)
+    lcs = []
     lc, tc = 0, 0 # label counter and tmp counter
     body = code.each_char.map {|char|
       case char
@@ -137,6 +138,7 @@ while cond action x
       when '['
         a = tc += 1; b = tc += 1; c = tc += 1; d = tc += 1
         lc += 1
+        lcs.push lc
         "br label %cond#{lc}\n" <<
         "cond#{lc}:\n" <<
         "%tmp#{a} = load i32* %i, align 4\n" <<
@@ -146,8 +148,9 @@ while cond action x
         "br i1 %tmp#{d}, label %while#{lc}, label %end#{lc}\n" <<
         "while#{lc}:\n"
       when ']'
-        "br label %cond#{lc}\n" <<
-        "end#{lc}:\n"
+        _lc = lcs.pop
+        "br label %cond#{_lc}\n" <<
+        "end#{_lc}:\n"
       end
     }.compact.join("\n")
     initialize_h = (0...1024).map {|i|
