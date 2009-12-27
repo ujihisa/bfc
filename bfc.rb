@@ -95,6 +95,69 @@ while cond action x
   | otherwise = return x
     EOF
   end
+
+  def llvm(code)
+    lc, tc = 0, 0 # label counter and tmp counter
+    body = code.each_char.map {|char|
+      case char
+      when ','; '*h=getchar();'
+      when '.'
+        a = tc += 1; b = tc += 1; c = tc += 1; d = tc += 1
+        "%tmp#{a} = load i32* %i, align 4\n" <<
+        "%tmp#{b} = getelementptr [1024 x i8]* %h, i32 0, i32 %tmp#{a}\n" <<
+        "%tmp#{c} = load i8* %tmp#{b}, align 1\n" <<
+        "call i32 @putchar(i8 %tmp#{c})\n"
+      when '-'
+        a = tc += 1; b = tc += 1; c = tc += 1; d = tc += 1
+        "%tmp#{a} = load i32* %i, align 4\n" <<
+        "%tmp#{b} = getelementptr [1024 x i8]* %h, i32 0, i32 %tmp#{a}\n" <<
+        "%tmp#{c} = load i8* %tmp#{b}, align 1\n" <<
+        "%tmp#{d} = sub i8 1, %tmp#{c}\n" <<
+        "store i8 %tmp#{d}, i8* %tmp#{b}, align 1\n"
+      when '+'
+        a = tc += 1; b = tc += 1; c = tc += 1; d = tc += 1
+        "%tmp#{a} = load i32* %i, align 4\n" <<
+        "%tmp#{b} = getelementptr [1024 x i8]* %h, i32 0, i32 %tmp#{a}\n" <<
+        "%tmp#{c} = load i8* %tmp#{b}, align 1\n" <<
+        "%tmp#{d} = add i8 1, %tmp#{c}\n" <<
+        "store i8 %tmp#{d}, i8* %tmp#{b}, align 1\n"
+      when '<'
+        a = tc += 1; b = tc += 1
+        "%tmp#{a} = load i32* %i, align 4\n" <<
+        "%tmp#{b} = sub i32 1, %tmp#{a}\n" <<
+        "store i32 %tmp#{b}, i32* %i, align 4\n"
+      when '>'
+        a = tc += 1; b = tc += 1
+        "%tmp#{a} = load i32* %i, align 4\n" <<
+        "%tmp#{b} = add i32 1, %tmp#{a}\n" <<
+        "store i32 %tmp#{b}, i32* %i, align 4\n"
+      when '['
+        a = tc += 1; b = tc += 1; c = tc += 1; d = tc += 1
+        lc += 1
+        "%tmp#{a} = load i32* %i, align 4\n" <<
+        "%tmp#{b} = getelementptr [1024 x i8]* %h, i32 0, i32 %tmp#{a}\n" <<
+        "%tmp#{c} = load i8* %tmp#{b}, align 1\n" <<
+        "%tmp#{d} = icmp eq i8 %tmp#{c}, 0\n" <<
+        "br i1 %tmp#{d}, label %end#{lc}, label %while#{lc}\n" <<
+        "while#{lc}:\n"
+      when ']'
+        "br label %while#{lc}\n" <<
+        "end#{lc}:\n"
+      end
+    }.compact.join("\n")
+    return <<-EOF
+define void @main() nounwind {
+init:
+  %h = alloca [1024 x i8]
+  %i = alloca i32
+  store i32 0, i32* %i, align 4
+  #{body}
+  ret void
+}
+declare i32 @putchar(i8) nounwind
+
+    EOF
+  end
 end
 
 case $0
@@ -151,7 +214,19 @@ when __FILE__
       end
     end
   when opts[:llvm]
-    p 'not yet :('
+    if !opts[:run]
+      puts BFC.llvm(File.read(opts[:llvm]))
+    else
+      require 'tempfile'
+      name = Tempfile.new('bfc').path + '.ll'
+      File.open(name, 'w') {|io|
+        io.puts BFC.llvm(File.read(opts[:llvm]))
+      }
+      Dir.chdir(File.dirname(name)) do
+        system 'llvm-as', name
+        system 'lli', name.sub(/\.ll$/, '.bc')
+      end
+    end
   else
     p opts
   end
