@@ -1,4 +1,4 @@
-#!/usr/bin/env ruby192
+#!/usr/bin/env ruby
 module BFC
   module_function
 
