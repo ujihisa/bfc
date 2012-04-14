@@ -32,7 +32,10 @@ module BFC
     #include<stdio.h>
     #include<stdlib.h>
     int main(int argc, char **argv) {
+    int i;
     char *h = (char *)malloc(sizeof(char) * 1024);
+    for (i = 0; i < 1024; ++i)
+      h[i] = 0;
     #{code.each_char.map {|c| h[c] }.compact.join("\n")}
     return 0;
     }
