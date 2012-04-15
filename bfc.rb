@@ -60,6 +60,7 @@ module BFC
     }.compact.join("\n")
 
     return <<-EOF
+    #include<stdio.h>
     #include<stdlib.h>
     int main(int argc, char **argv) {
     char *h = (char *)malloc(sizeof(char) * 1024);
